@@ -26,8 +26,9 @@
 
 class rf_uhd_generic : public rf_uhd_safe_interface
 {
-private:
+public:
   uhd::usrp::multi_usrp::sptr     usrp                         = nullptr;
+private:
   const uhd::fs_path              TREE_DBOARD_RX_FRONTEND_NAME = "/mboards/0/dboards/A/rx_frontends/A/name";
   const std::chrono::milliseconds FE_RX_RESET_SLEEP_TIME_MS    = std::chrono::milliseconds(2000UL);
   uhd::stream_args_t              stream_args                  = {};

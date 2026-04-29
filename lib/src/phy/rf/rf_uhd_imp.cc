@@ -410,10 +410,40 @@ static int set_time_to_gps_time(rf_uhd_handler_t* handler)
     return SRSRAN_ERROR;
   }
 
-  // Get time and set
-  printf("Setting USRP time to %fs\n", frac_secs);
-  if (handler->uhd->set_time_unknown_pps(uhd::time_spec_t(frac_secs)) != UHD_ERROR_NONE) {
-    return SRSRAN_ERROR;
+  // Wait for the GPS second to roll over so we are at the start of a fresh
+  // ~1-second window before the next PPS edge. Without this, in a multi-USRP
+  // setup where the two boards are opened serially, each set_time_unknown_pps
+  // call lands at a different wall-clock moment and produces a permanent
+  // inter-USRP timestamp offset (observed: ~500 us, breaks PBCH/PDCCH decode).
+  double initial = frac_secs;
+  for (int i = 0; i < 40 && frac_secs == initial; i++) {
+    usleep(50000);
+    if (handler->uhd->get_sensor(sensor_name, frac_secs) != UHD_ERROR_NONE) {
+      return SRSRAN_ERROR;
+    }
+  }
+
+  // Use multi_usrp::set_time_next_pps so the FPGA loads the time on the next
+  // observed PPS rising edge. Each USRP independently sets its time to
+  // (current_gps_time + 1) at its next PPS, and since both PPS edges are
+  // GPS-aligned, both boards end up showing GPS time at any future moment.
+  auto* gen = dynamic_cast<rf_uhd_generic*>(handler->uhd.get());
+  if (gen != nullptr && gen->usrp != nullptr) {
+    printf("Setting USRP time to %fs at next PPS\n", frac_secs + 1.0);
+    try {
+      gen->usrp->set_time_next_pps(uhd::time_spec_t(frac_secs + 1.0));
+    } catch (...) {
+      return SRSRAN_ERROR;
+    }
+    // Wait for the PPS edge to pass so the time is committed in the FPGA.
+    usleep(1500000);
+  } else {
+    // Fallback for backends other than rf_uhd_generic (e.g., rfnoc), which
+    // already do the right thing inside their set_time_unknown_pps override.
+    printf("Setting USRP time to %fs\n", frac_secs);
+    if (handler->uhd->set_time_unknown_pps(uhd::time_spec_t(frac_secs)) != UHD_ERROR_NONE) {
+      return SRSRAN_ERROR;
+    }
   }
 
   return SRSRAN_SUCCESS;
