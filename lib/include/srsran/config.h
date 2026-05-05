@@ -62,6 +62,12 @@
 #define SRSRAN_ERROR_OUT_OF_BOUNDS -5
 #define SRSRAN_ERROR_CANT_START -6
 #define SRSRAN_ERROR_ALREADY_STARTED -7
+// Set by srsran_pdsch_decode when the RE count predicted by
+// srsran_ra_dl_compute_nof_re does not match what srsran_pdsch_get
+// actually extracts. Almost always indicates a PDCCH false-positive
+// CRC match (random bitmap), so callers can demote the log level
+// for this specific failure without hiding real PDSCH decode errors.
+#define SRSRAN_ERROR_PDSCH_RE_MISMATCH -8
 
 // cf_t definition
 typedef _Complex float cf_t;

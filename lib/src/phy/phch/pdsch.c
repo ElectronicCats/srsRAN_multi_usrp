@@ -843,7 +843,7 @@ int srsran_pdsch_decode(srsran_pdsch_t*        q,
         INFO("PDSCH RE mismatch sf=%d rnti=0x%x mod=%d nof_prb=%d nof_ports=%d cfi=%d: expected %d got %d (delta %d)",
              sf->tti % 10, cfg->rnti, cfg->grant.tb[0].mod, cfg->grant.nof_prb,
              q->cell.nof_ports, sf->cfi, cfg->grant.nof_re, n, n - (int)cfg->grant.nof_re);
-        return SRSRAN_ERROR;
+        return SRSRAN_ERROR_PDSCH_RE_MISMATCH;
       }
 
       for (i = 0; i < q->cell.nof_ports; i++) {
@@ -851,7 +851,7 @@ int srsran_pdsch_decode(srsran_pdsch_t*        q,
         if (n != cfg->grant.nof_re) {
           INFO("PDSCH RE mismatch (ch_est) sf=%d rnti=0x%x port=%d: expected %d got %d",
                sf->tti % 10, cfg->rnti, i, cfg->grant.nof_re, n);
-          return SRSRAN_ERROR;
+          return SRSRAN_ERROR_PDSCH_RE_MISMATCH;
         }
       }
     }
