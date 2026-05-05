@@ -194,9 +194,11 @@ int srsran_ra_dl_grant_to_grant_prb_allocation(const srsran_dci_dl_t* dci,
       memcpy(&grant->prb_idx[1], &grant->prb_idx[0], SRSRAN_MAX_PRB * sizeof(bool));
       break;
     case SRSRAN_RA_ALLOC_TYPE1:
-      // Make sure the rbg_subset is valid
+      // Make sure the rbg_subset is valid. dci_format{1,2AB}_unpack already
+      // rejects this case, so reaching here means a non-blind-decode caller
+      // passed a bad DCI — non-fatal, just skip PDSCH.
       if (dci->type1_alloc.rbg_subset >= P) {
-        ERROR("Invalid RBG subset=%d for nof_prb=%d where P=%d", dci->type1_alloc.rbg_subset, nof_prb, P);
+        INFO("Invalid RBG subset=%d for nof_prb=%d where P=%d", dci->type1_alloc.rbg_subset, nof_prb, P);
         return SRSRAN_ERROR;
       }
       n_rb_type1    = srsran_ra_type1_N_rb(nof_prb);

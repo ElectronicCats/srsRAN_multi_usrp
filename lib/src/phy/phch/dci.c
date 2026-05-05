@@ -674,6 +674,13 @@ static int dci_format1_unpack(srsran_cell_t*      cell,
       break;
     case SRSRAN_RA_ALLOC_TYPE1:
       dci->type1_alloc.rbg_subset  = srsran_bit_pack(&y, (int)ceilf(log2f(P)));
+      // rbg_subset field is ceil(log2(P)) bits but only values 0..P-1 are
+      // valid per 36.213 7.1.6.2. The reserved bit pattern (e.g. 0b11 with
+      // P=3) almost always indicates a PDCCH false-positive CRC match, so
+      // reject here rather than letting it reach ra_dl PRB allocation.
+      if (dci->type1_alloc.rbg_subset >= P) {
+        return SRSRAN_ERROR;
+      }
       dci->type1_alloc.shift       = *y++ ? true : false;
       dci->type1_alloc.vrb_bitmask = srsran_bit_pack(&y, alloc_size - (int)ceilf(log2f(P)) - 1);
       break;
@@ -1164,6 +1171,13 @@ static int dci_format2AB_unpack(srsran_cell_t*      cell,
       break;
     case SRSRAN_RA_ALLOC_TYPE1:
       dci->type1_alloc.rbg_subset  = srsran_bit_pack(&y, (int)ceilf(log2f(P)));
+      // rbg_subset field is ceil(log2(P)) bits but only values 0..P-1 are
+      // valid per 36.213 7.1.6.2. The reserved bit pattern (e.g. 0b11 with
+      // P=3) almost always indicates a PDCCH false-positive CRC match, so
+      // reject here rather than letting it reach ra_dl PRB allocation.
+      if (dci->type1_alloc.rbg_subset >= P) {
+        return SRSRAN_ERROR;
+      }
       dci->type1_alloc.shift       = *y++ ? true : false;
       dci->type1_alloc.vrb_bitmask = srsran_bit_pack(&y, alloc_size - (int)ceilf(log2f(P)) - 1);
       break;
