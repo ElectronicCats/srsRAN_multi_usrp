@@ -832,14 +832,25 @@ int srsran_pdsch_decode(srsran_pdsch_t*        q,
     for (int j = 0; j < q->nof_rx_antennas; j++) {
       int n = srsran_pdsch_get(q, sf_symbols[j], q->symbols[j], &cfg->grant, lstart, sf->tti % 10);
       if (n != cfg->grant.nof_re) {
-        ERROR("Error expecting %d symbols but got %d", cfg->grant.nof_re, n);
+        // Symbol-count predicted by srsran_ra_dl_compute_nof_re does not match
+        // what srsran_pdsch_cp actually extracts from the grid. Most of the
+        // time this means a PDCCH false-positive CRC produced an inconsistent
+        // grant (random PRB bitmap), which is non-fatal -- just skip PDSCH.
+        // BUT: small deltas (especially 8 == 4*nof_ports for 2 ports, or
+        // multiples of 11 for partial-CRS-symbol counts) can also indicate a
+        // real path disagreement, e.g. q->cell.nof_ports drifting from the
+        // cell used in ra_dl. Logged at INFO with diagnostics for triage.
+        INFO("PDSCH RE mismatch sf=%d rnti=0x%x mod=%d nof_prb=%d nof_ports=%d cfi=%d: expected %d got %d (delta %d)",
+             sf->tti % 10, cfg->rnti, cfg->grant.tb[0].mod, cfg->grant.nof_prb,
+             q->cell.nof_ports, sf->cfi, cfg->grant.nof_re, n, n - (int)cfg->grant.nof_re);
         return SRSRAN_ERROR;
       }
 
       for (i = 0; i < q->cell.nof_ports; i++) {
         n = srsran_pdsch_get(q, channel->ce[i][j], q->ce[i][j], &cfg->grant, lstart, sf->tti % 10);
         if (n != cfg->grant.nof_re) {
-          ERROR("Error expecting %d symbols but got %d", cfg->grant.nof_re, n);
+          INFO("PDSCH RE mismatch (ch_est) sf=%d rnti=0x%x port=%d: expected %d got %d",
+               sf->tti % 10, cfg->rnti, i, cfg->grant.nof_re, n);
           return SRSRAN_ERROR;
         }
       }
