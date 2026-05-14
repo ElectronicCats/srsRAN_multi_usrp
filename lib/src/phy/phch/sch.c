@@ -81,7 +81,11 @@ static inline float get_beta_cqi_offset(uint32_t idx)
   if (idx > 1 && idx < 16) {
     ret = beta_cqi_offset[idx];
   } else {
-    ERROR("Invalid input %d (min: %d, max: %d)", idx, 2, 15);
+    // Fires when callers pass idx=0/1 (reserved). Sole cause in LTESniffer is
+    // a phantom C-RNTI being processed in UL without a real RRC Connection
+    // Setup: the UE config is zero-initialized so I_offset_cqi = 0. Function
+    // recovers with the default offset (1.125), so this is non-fatal noise.
+    INFO("Invalid input %d (min: %d, max: %d)", idx, 2, 15);
   }
 
   return ret;
